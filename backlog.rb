@@ -3,11 +3,11 @@ require 'Date'
 require_relative 'Util'
 
 class BacklogIssuesBuilder
-  attr_reader :client, :space_id
+  attr_reader :client, :secrets_info
 
   def initialize(args)
     @client = args[:client]
-    @space_id = args[:space_id]
+    @secrets_info = args[:secrets_info]
   end
 
   def execute
@@ -17,7 +17,7 @@ class BacklogIssuesBuilder
       p "ステータス: #{issue.status.name}"
       p "タイトル: #{issue.summary}"
       p "期限日: #{issue.due_date}"
-      p "url: https://#{space_id}.backlog.com/view/#{issue.issueKey}"
+      p "url: https://#{secrets_info['space_id']}.backlog.com/view/#{issue.issueKey}"
     end
   end
 
@@ -26,24 +26,24 @@ class BacklogIssuesBuilder
   def issues
     client.get_issues(
       {
-        projectId: [13169],
+        projectId: secrets_info['project_id'],
         statusId: [1, 2],
         dueDateSince: (Date.today - 1).to_s, #当日指定ができない。多分どこかでミスっている
         dueDateUntil: (Date.today + 3).to_s,
-        assigneeId: [300091, 300092]
+        assigneeId: secrets_info['assignee_id']
       }
     ).body
   end
 end
 
-secret = Util.load_secret_file
+secrets_info = Util.load_secret_file
 
 client = BacklogKit::Client.new(
-  space_id: secret['space_id'],
-  api_key: secret['api_key']
+  space_id: secrets_info['space_id'],
+  api_key: secrets_info['api_key']
 )
 
 BacklogIssuesBuilder.new(
   client: client,
-  space_id: secret['space_id']
+  secrets_info: secrets_info
 ).execute
